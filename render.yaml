@@ -1,11 +1,11 @@
 services:
-  # Main Web Service (serves both frontend and backend)
   - type: web
-    name: acms-app
-    env: node
+    name: acms-api
+    runtime: node
     plan: starter
-    buildCommand: npm install && cd server && npm install --production && cd ../client && NODE_ENV=development npm install && NODE_ENV=production npm run build
+    buildCommand: cd server && npm install --production
     startCommand: cd server && npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,18 +13,28 @@ services:
         value: 10000
       - key: DB_TYPE
         value: postgresql
-      # Database connection variables - Set these manually after creating PostgreSQL database
-      # Go to your PostgreSQL service → "Connections" → Copy the values
+      - key: DB_SSL
+        value: "true"
       - key: DB_HOST
-        sync: false
+        fromDatabase:
+          name: acms-database
+          property: host
       - key: DB_PORT
-        sync: false
+        fromDatabase:
+          name: acms-database
+          property: port
       - key: DB_NAME
-        sync: false
+        fromDatabase:
+          name: acms-database
+          property: database
       - key: DB_USER
-        sync: false
+        fromDatabase:
+          name: acms-database
+          property: user
       - key: DB_PASSWORD
-        sync: false
+        fromDatabase:
+          name: acms-database
+          property: password
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
@@ -33,18 +43,12 @@ services:
         generateValue: true
       - key: BCRYPT_ROUNDS
         value: 12
+      # Set after Vercel deploy: https://your-app.vercel.app
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: acms-app
-          property: host
-      - key: SERVER_URL
-        fromService:
-          type: web
-          name: acms-app
-          property: host
-      - key: REACT_APP_API_URL
-        fromService:
-          type: web
-          name: acms-app
-          property: host
+        sync: false
+
+databases:
+  - name: acms-database
+    plan: starter
+    databaseName: acms
+    user: acms_user

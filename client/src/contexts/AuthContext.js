@@ -12,40 +12,16 @@ export const useAuth = () => {
   return context;
 };
 
-// Construct API URL - use window.location for production, env var for development
-let baseURL;
+const resolveApiUrl = () => {
+  const configured = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const trimmed = configured.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
 
-if (process.env.NODE_ENV === 'production') {
-  // In production, use the current origin (same domain as the app)
-  baseURL = window.location.origin;
-} else {
-  // In development, use the env var or default
-  baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-}
+const API_URL = resolveApiUrl();
 
-// Clean up the base URL - remove any service name paths that Render might add
-// Render might set this to something like https://acms-app-4p4b.onrender.com/acms-app-4p4b
-// We need just the domain: https://acms-app-4p4b.onrender.com
-if (baseURL.includes('/acms-app-')) {
-  const urlParts = baseURL.split('/acms-app-');
-  baseURL = urlParts[0];
-}
-
-// Remove trailing slashes
-baseURL = baseURL.replace(/\/+$/, '');
-
-// Append /api if not already present
-const API_URL = baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`;
-
-console.log('🌐 Environment:', process.env.NODE_ENV);
-console.log('🌐 Base URL:', baseURL);
-console.log('🌐 API URL:', API_URL);
-console.log('🌐 Window origin:', window.location.origin);
-
-// Configure axios defaults
 axios.defaults.baseURL = API_URL;
 
-// Add request interceptor to include token
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -54,12 +30,9 @@ axios.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle errors
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -82,7 +55,6 @@ export const AuthProvider = ({ children }) => {
 
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
-      // Verify token is still valid
       axios
         .get('/auth/me')
         .then((response) => {
@@ -102,12 +74,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      console.log('🔐 Attempting login for:', username);
-      console.log('🌐 API URL:', API_URL);
-      
       const response = await axios.post('/auth/login', { username, password });
-      console.log('✅ Login response:', response.data);
-      
+
       if (response.data.success && response.data.token && response.data.user) {
         const { token, user } = response.data;
 
@@ -117,14 +85,11 @@ export const AuthProvider = ({ children }) => {
 
         toast.success('Login successful');
         return { success: true };
-      } else {
-        console.error('❌ Invalid response format:', response.data);
-        toast.error('Invalid response from server');
-        return { success: false, message: 'Invalid response from server' };
       }
+
+      toast.error('Invalid response from server');
+      return { success: false, message: 'Invalid response from server' };
     } catch (error) {
-      console.error('❌ Login error:', error);
-      console.error('Error response:', error.response?.data);
       const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);
       return { success: false, message };
@@ -166,4 +131,3 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
