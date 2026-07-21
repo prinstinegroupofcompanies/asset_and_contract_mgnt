@@ -71,7 +71,6 @@ const ContractDetail = () => {
 
   const contract = data?.contract;
   const milestones = data?.milestones || [];
-  const documents = data?.documents || [];
 
   const getStatusBadge = (status) => {
     const badges = {

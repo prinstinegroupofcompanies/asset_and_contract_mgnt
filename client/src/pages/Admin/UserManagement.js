@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiEdit, FiTrash2, FiPlus, FiUserPlus } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiUserPlus } from 'react-icons/fi';
 import Modal from '../../components/Modal';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';

@@ -1,8 +1,5 @@
 import React from 'react';
-import { useQuery } from 'react-query';
-import axios from 'axios';
 import { FiDroplet } from 'react-icons/fi';
-import DataTable from '../../components/DataTable';
 
 const FuelLog = () => {
   // This would show all fuel logs across all vehicles

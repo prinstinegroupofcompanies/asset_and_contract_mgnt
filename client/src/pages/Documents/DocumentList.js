@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import axios from 'axios';
-import { FiArchive, FiDownload, FiEye, FiFile, FiSearch, FiFilter, FiX } from 'react-icons/fi';
+import { FiArchive, FiDownload, FiEye, FiFile, FiFilter, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import DataTable from '../../components/DataTable';
 import { Link } from 'react-router-dom';
@@ -25,7 +25,7 @@ const DocumentList = () => {
     return response.data.projects;
   });
 
-  const { data, isLoading, refetch } = useQuery(
+  const { data, isLoading } = useQuery(
     ['documents', filters, isAssetManager, isStockManager],
     async () => {
       const params = new URLSearchParams();

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from 'react-query';
-import axios from 'axios';
-import { FiFileText, FiDownload, FiBarChart2 } from 'react-icons/fi';
+import { FiFileText, FiBarChart2 } from 'react-icons/fi';
 import AssetReport from './AssetReport';
 import ContractReport from './ContractReport';
 import StockReport from './StockReport';
@@ -20,30 +18,30 @@ const ReportsModule = () => {
       </div>
 
       <div className="module-tabs">
-        <a
-          href="#"
+        <button
+          type="button"
           className={activeTab === 'assets' ? 'active' : ''}
-          onClick={(e) => { e.preventDefault(); setActiveTab('assets'); }}
+          onClick={() => setActiveTab('assets')}
         >
           <FiFileText style={{ marginRight: '5px' }} />
           Asset Report
-        </a>
-        <a
-          href="#"
+        </button>
+        <button
+          type="button"
           className={activeTab === 'contracts' ? 'active' : ''}
-          onClick={(e) => { e.preventDefault(); setActiveTab('contracts'); }}
+          onClick={() => setActiveTab('contracts')}
         >
           <FiFileText style={{ marginRight: '5px' }} />
           Contract Report
-        </a>
-        <a
-          href="#"
+        </button>
+        <button
+          type="button"
           className={activeTab === 'stock' ? 'active' : ''}
-          onClick={(e) => { e.preventDefault(); setActiveTab('stock'); }}
+          onClick={() => setActiveTab('stock')}
         >
           <FiFileText style={{ marginRight: '5px' }} />
           Stock Report
-        </a>
+        </button>
       </div>
 
       <div style={{ marginTop: '20px' }}>

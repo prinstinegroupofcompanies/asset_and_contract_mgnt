@@ -9,13 +9,9 @@ import {
   FiTruck, 
   FiUsers,
   FiAlertCircle,
-  FiTrendingUp,
-  FiDollarSign,
   FiActivity,
-  FiCheckCircle,
-  FiClock,
   FiAlertTriangle,
-  FiShoppingCart,
+  FiClock,
   FiArrowDown,
   FiArrowUp
 } from 'react-icons/fi';

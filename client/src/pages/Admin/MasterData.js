@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiEdit, FiTrash2, FiPlus } from 'react-icons/fi';
+import { FiPlus } from 'react-icons/fi';
 import Modal from '../../components/Modal';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
@@ -187,17 +187,14 @@ const MasterData = () => {
 
       <div className="module-tabs">
         {tabs.map(tab => (
-          <a
+          <button
             key={tab.id}
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab(tab.id);
-            }}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
             className={activeTab === tab.id ? 'active' : ''}
           >
             {tab.label}
-          </a>
+          </button>
         ))}
       </div>
 

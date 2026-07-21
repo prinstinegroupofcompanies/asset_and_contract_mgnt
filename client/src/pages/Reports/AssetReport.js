@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import axios from 'axios';
-import { FiDownload, FiSearch, FiFilter } from 'react-icons/fi';
+import { FiDownload } from 'react-icons/fi';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
 
@@ -14,7 +14,7 @@ const AssetReport = () => {
     from_date: '',
     to_date: ''
   });
-  const [showFilters, setShowFilters] = useState(true);
+  const showFilters = true;
 
   const { data: categories } = useQuery('asset-categories', async () => {
     const response = await axios.get('/admin/asset-categories');

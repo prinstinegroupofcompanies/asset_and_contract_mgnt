@@ -5,10 +5,8 @@ import axios from 'axios';
 import { FiEye, FiPackage, FiDownload } from 'react-icons/fi';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
-import { useAuth } from '../../contexts/AuthContext';
 
 const AssetList = () => {
-  const { isAssetManager } = useAuth();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
     search: '',
@@ -33,11 +31,6 @@ const AssetList = () => {
   const { data: categories } = useQuery('asset-categories', async () => {
     const response = await axios.get('/admin/asset-categories');
     return response.data.categories;
-  });
-
-  const { data: statuses } = useQuery('asset-statuses', async () => {
-    // This would need to be added to the backend
-    return [];
   });
 
   const { data: projects } = useQuery('projects', async () => {

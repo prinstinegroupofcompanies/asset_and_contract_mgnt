@@ -16,16 +16,12 @@ import {
   FiDatabase,
   FiList,
   FiPlus,
-  FiFile,
   FiAlertCircle,
   FiBarChart2,
   FiShoppingCart,
   FiDroplet,
   FiTool,
-  FiCheckCircle,
-  FiClock,
-  FiArchive,
-  FiDownload
+  FiArchive
 } from 'react-icons/fi';
 import NotificationCenter from './NotificationCenter';
 import './Layout.css';

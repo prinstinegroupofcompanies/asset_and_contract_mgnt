@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import StockList from './StockList';
 import StockItemDetail from './StockItemDetail';
 import StockEntry from './StockEntry';
