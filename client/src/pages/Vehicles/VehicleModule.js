@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import VehicleList from './VehicleList';
 import VehicleDetail from './VehicleDetail';
 import VehicleCreate from './VehicleCreate';
@@ -19,7 +19,14 @@ const VehicleModule = () => {
       <div className="module-tabs">
         <Link
           to="/vehicles"
-          className={location.pathname === '/vehicles' || location.pathname.startsWith('/vehicles/') && !location.pathname.includes('/create') && !location.pathname.includes('/fuel') && !location.pathname.includes('/maintenance') ? 'active' : ''}
+          className={
+            (location.pathname === '/vehicles' || location.pathname.startsWith('/vehicles/')) &&
+            !location.pathname.includes('/create') &&
+            !location.pathname.includes('/fuel') &&
+            !location.pathname.includes('/maintenance')
+              ? 'active'
+              : ''
+          }
         >
           Vehicles
         </Link>

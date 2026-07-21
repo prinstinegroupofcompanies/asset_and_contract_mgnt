@@ -5,10 +5,8 @@ import axios from 'axios';
 import { FiEye, FiTruck, FiDownload } from 'react-icons/fi';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
-import { useAuth } from '../../contexts/AuthContext';
 
 const VehicleList = () => {
-  const { isAssetManager } = useAuth();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
     vehicle_type: '',
