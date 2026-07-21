@@ -43,7 +43,17 @@ const isAllowedOrigin = (origin) => {
 
   if (allowedOrigins.includes(origin)) return true;
 
-  return /^(http:\/\/localhost:\d+|http:\/\/127\.0\.0\.1:\d+)$/.test(origin);
+  try {
+    const hostname = new URL(origin).hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.endsWith('.vercel.app') ||
+      hostname.endsWith('.now.sh')
+    );
+  } catch {
+    return false;
+  }
 };
 
 const corsOptions = {

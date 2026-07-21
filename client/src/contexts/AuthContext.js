@@ -13,9 +13,21 @@ export const useAuth = () => {
 };
 
 const resolveApiUrl = () => {
-  const configured = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-  const trimmed = configured.replace(/\/+$/, '');
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  const configured = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL;
+
+  if (configured && configured.trim()) {
+    const trimmed = configured.trim().replace(/\/+$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location?.hostname || '';
+    if (hostname.includes('vercel.app') || hostname.includes('localhost') || hostname === '127.0.0.1') {
+      return hostname.includes('vercel.app') ? '/api' : 'http://localhost:5000/api';
+    }
+  }
+
+  return 'http://localhost:5000/api';
 };
 
 const API_URL = resolveApiUrl();
@@ -75,7 +87,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { username, password });
+      const response = await axios.post('/auth/login', { username, password });
 
       if (response.data.success && response.data.token && response.data.user) {
         const { token, user } = response.data;
