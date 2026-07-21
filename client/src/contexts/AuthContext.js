@@ -21,6 +21,7 @@ const resolveApiUrl = () => {
 const API_URL = resolveApiUrl();
 
 axios.defaults.baseURL = API_URL;
+axios.defaults.withCredentials = true;
 
 axios.interceptors.request.use(
   (config) => {
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('/auth/login', { username, password });
+      const response = await axios.post(`${API_URL}/auth/login`, { username, password });
 
       if (response.data.success && response.data.token && response.data.user) {
         const { token, user } = response.data;
@@ -87,8 +88,8 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       }
 
-      toast.error('Invalid response from server');
-      return { success: false, message: 'Invalid response from server' };
+      toast.error(response.data.message || 'Invalid response from server');
+      return { success: false, message: response.data.message || 'Invalid response from server' };
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);
