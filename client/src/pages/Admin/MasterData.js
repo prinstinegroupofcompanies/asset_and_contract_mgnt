@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FiPlus } from 'react-icons/fi';
@@ -13,6 +14,7 @@ const MasterData = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({});
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const tabs = [
     { id: 'suppliers', label: 'Suppliers', endpoint: '/admin/suppliers' },
@@ -90,6 +92,17 @@ const MasterData = () => {
         return {};
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    const action = params.get('action');
+    if (tab) setActiveTab(tab);
+    if (tab === 'suppliers' && action === 'create') {
+      // open modal after activeTab updates
+      setTimeout(() => handleOpenModal(), 50);
+    }
+  }, [location.search]);
 
   const getColumns = () => {
     switch (activeTab) {

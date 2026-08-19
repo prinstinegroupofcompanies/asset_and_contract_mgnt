@@ -114,6 +114,19 @@ const Layout = () => {
       });
     }
 
+    // Venders (top-level) with subitems
+    items.push({
+      type: 'group',
+      key: 'venders',
+      label: 'Venders',
+      icon: FiShoppingCart,
+      items: [
+        { path: '/admin/master-data?tab=suppliers&action=create', label: 'Create Suppler', icon: FiPlus, description: 'Add a new supplier' },
+        { path: '/admin/master-data?tab=suppliers&view=log', label: 'Log Suppler', icon: FiList, description: 'View supplier logs' }
+      ]
+    });
+
+
     // Documents/Archived Module - All authenticated users (but filtered by role)
     items.push({
       type: 'single',
@@ -122,6 +135,9 @@ const Layout = () => {
       icon: FiArchive,
       description: 'View and manage documents'
     });
+
+    
+    
 
     // Reports Module - All authenticated users (but filtered by role)
     items.push({
