@@ -117,12 +117,12 @@ const Layout = () => {
     // Venders (top-level) with subitems
     items.push({
       type: 'group',
-      key: 'venders',
-      label: 'Venders',
+      key: 'vendors',
+      label: 'Vendors',
       icon: FiShoppingCart,
       items: [
-        { path: '/admin/master-data?tab=suppliers&action=create', label: 'Create Suppler', icon: FiPlus, description: 'Add a new supplier' },
-       
+        { path: '/admin/master-data?tab=suppliers&action=create', label: 'Create Supplier', icon: FiPlus, description: 'Add a new supplier' },
+        
       ]
     });
 
