@@ -59,7 +59,7 @@ const FormInput = ({
           id={inputId}
           name={name}
           type={type}
-          value={value || ''}
+          value={type === 'file' ? undefined : value || ''}
           onChange={onChange}
           className={`form-control ${error ? 'error' : ''}`}
           placeholder={placeholder}

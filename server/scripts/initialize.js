@@ -29,6 +29,14 @@ const schemas = {
         email TEXT,
         phone TEXT,
         address TEXT,
+        supplier_name TEXT,
+        cell_number TEXT,
+        contact_person_name TEXT,
+        contact_person_number TEXT,
+        agreement_type TEXT,
+        contract_period_start DATE,
+        contract_period_end DATE,
+        document_path TEXT,
         is_active INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -546,6 +554,34 @@ async function createTables() {
   }
 }
 
+async function migrateSupplierColumns() {
+  const columns = [
+    ['supplier_name', 'TEXT'],
+    ['cell_number', 'TEXT'],
+    ['contact_person_name', 'TEXT'],
+    ['contact_person_number', 'TEXT'],
+    ['agreement_type', 'TEXT'],
+    ['contract_period_start', 'DATE'],
+    ['contract_period_end', 'DATE'],
+    ['document_path', 'TEXT']
+  ];
+
+  if ((process.env.DB_TYPE || 'sqlite') === 'sqlite') {
+    const existingColumns = await db.query("SELECT name FROM pragma_table_info('suppliers')");
+    const existingNames = new Set(existingColumns.map(column => column.name));
+    for (const [name, type] of columns) {
+      if (!existingNames.has(name)) {
+        await db.query(`ALTER TABLE suppliers ADD COLUMN ${name} ${type}`);
+      }
+    }
+    return;
+  }
+
+  for (const [name, type] of columns) {
+    await db.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS ${name} ${type}`);
+  }
+}
+
 async function seedInitialData() {
   logger.info('Seeding initial data...');
 
@@ -605,6 +641,7 @@ async function seedInitialData() {
 async function initializeDatabase() {
   try {
     await createTables();
+    await migrateSupplierColumns();
     await seedInitialData();
     logger.info('Database initialization completed');
   } catch (error) {

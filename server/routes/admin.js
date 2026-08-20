@@ -6,6 +6,24 @@ const { authenticate, authorize } = require('../utils/auth');
 const { hashPassword } = require('../utils/auth');
 const { logAudit } = require('../utils/audit');
 const logger = require('../utils/logger');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const supplierUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, callback) => {
+      const uploadPath = process.env.UPLOAD_PATH || path.join(__dirname, '../uploads');
+      fs.mkdirSync(uploadPath, { recursive: true });
+      callback(null, uploadPath);
+    },
+    filename: (req, file, callback) => {
+      const extension = path.extname(file.originalname);
+      callback(null, `supplier-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+    }
+  }),
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024 }
+});
 
 // All admin routes require authentication
 router.use(authenticate);
@@ -201,8 +219,8 @@ router.get('/suppliers', async (req, res) => {
   }
 });
 
-router.post('/suppliers', authorize('Administrator'), [
-  body('name').notEmpty().withMessage('Name is required')
+router.post('/suppliers', authorize('Administrator'), supplierUpload.single('document'), [
+  body('supplier_name').notEmpty().withMessage('Supplier name is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -210,18 +228,45 @@ router.post('/suppliers', authorize('Administrator'), [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, contact_person, email, phone, address } = req.body;
+    const {
+      supplier_name,
+      address,
+      cell_number,
+      contact_person_name,
+      contact_person_number,
+      agreement_type,
+      contract_period_start,
+      contract_period_end
+    } = req.body;
+    const document_path = req.file ? `/uploads/${req.file.filename}` : null;
     const result = await db.query(`
-      INSERT INTO suppliers (name, contact_person, email, phone, address)
-      VALUES (?, ?, ?, ?, ?)
-    `, [name, contact_person, email, phone, address]);
+      INSERT INTO suppliers (
+        name, contact_person, phone, address, supplier_name, cell_number,
+        contact_person_name, contact_person_number, agreement_type,
+        contract_period_start, contract_period_end, document_path
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      supplier_name,
+      contact_person_name,
+      cell_number,
+      address,
+      supplier_name,
+      cell_number,
+      contact_person_name,
+      contact_person_number,
+      agreement_type,
+      contract_period_start,
+      contract_period_end,
+      document_path
+    ]);
 
     await logAudit({
       userId: req.user.id,
       action: 'CREATE',
       entity: 'SUPPLIER',
       entityId: result.lastID,
-      description: `Created supplier: ${name}`,
+      description: `Created supplier: ${supplier_name}`,
       ipAddress: req.ip
     });
 
@@ -229,6 +274,102 @@ router.post('/suppliers', authorize('Administrator'), [
   } catch (error) {
     logger.error('Create supplier error:', error);
     res.status(500).json({ success: false, message: 'Failed to create supplier' });
+  }
+});
+
+router.put('/suppliers/:id', authorize('Administrator'), supplierUpload.single('document'), [
+  body('supplier_name').notEmpty().withMessage('Supplier name is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const {
+      supplier_name,
+      address,
+      cell_number,
+      contact_person_name,
+      contact_person_number,
+      agreement_type,
+      contract_period_start,
+      contract_period_end
+    } = req.body;
+    const documentValues = req.file ? ', document_path = ?' : '';
+    const values = [
+      supplier_name,
+      contact_person_name,
+      cell_number,
+      address,
+      supplier_name,
+      cell_number,
+      contact_person_name,
+      contact_person_number,
+      agreement_type,
+      contract_period_start,
+      contract_period_end
+    ];
+
+    if (req.file) {
+      values.push(`/uploads/${req.file.filename}`);
+    }
+    values.push(req.params.id);
+
+    const result = await db.query(`
+      UPDATE suppliers SET
+        name = ?, contact_person = ?, phone = ?, address = ?, supplier_name = ?,
+        cell_number = ?, contact_person_name = ?, contact_person_number = ?,
+        agreement_type = ?, contract_period_start = ?, contract_period_end = ?,
+        updated_at = CURRENT_TIMESTAMP${documentValues}
+      WHERE id = ? AND deleted_at IS NULL
+    `, values);
+
+    if (!result.changes) {
+      return res.status(404).json({ success: false, message: 'Supplier not found' });
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'UPDATE',
+      entity: 'SUPPLIER',
+      entityId: req.params.id,
+      description: `Updated supplier: ${supplier_name}`,
+      ipAddress: req.ip
+    });
+
+    res.json({ success: true, message: 'Supplier updated successfully' });
+  } catch (error) {
+    logger.error('Update supplier error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update supplier' });
+  }
+});
+
+router.delete('/suppliers/:id', authorize('Administrator'), async (req, res) => {
+  try {
+    const result = await db.query(`
+      UPDATE suppliers
+      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND deleted_at IS NULL
+    `, [req.params.id]);
+
+    if (!result.changes) {
+      return res.status(404).json({ success: false, message: 'Supplier not found' });
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'DELETE',
+      entity: 'SUPPLIER',
+      entityId: req.params.id,
+      description: `Deleted supplier: ${req.params.id}`,
+      ipAddress: req.ip
+    });
+
+    res.json({ success: true, message: 'Supplier deleted successfully' });
+  } catch (error) {
+    logger.error('Delete supplier error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete supplier' });
   }
 });
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiEye, FiTrash2, FiDownload } from 'react-icons/fi';
 import Modal from '../../components/Modal';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
@@ -12,6 +12,7 @@ const MasterData = () => {
   const [activeTab, setActiveTab] = useState('suppliers');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const [formData, setFormData] = useState({});
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -50,6 +51,7 @@ const MasterData = () => {
   );
 
   const handleOpenModal = (item = null) => {
+    setIsViewOnly(false);
     setEditingItem(item);
     if (item) {
       setFormData(item);
@@ -62,26 +64,112 @@ const MasterData = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingItem(null);
+    setIsViewOnly(false);
     setFormData({});
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, files } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] || null : value
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (activeTab === 'suppliers') {
+      const supplierData = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          supplierData.append(key, value);
+        }
+      });
+
+      const supplierEndpoint = tabs.find(tab => tab.id === 'suppliers').endpoint;
+      const request = editingItem
+        ? axios.put(`${supplierEndpoint}/${editingItem.id}`, supplierData)
+        : axios.post(supplierEndpoint, supplierData);
+
+      request
+        .then(() => {
+          queryClient.invalidateQueries([activeTab, 'master-data']);
+          toast.success(editingItem ? 'Supplier updated successfully' : 'Supplier created successfully');
+          handleCloseModal();
+        })
+        .catch((error) => {
+          toast.error(error.response?.data?.message || `Failed to ${editingItem ? 'update' : 'create'} supplier`);
+        });
+      return;
+    }
+
     createMutation.mutate(formData);
+  };
+
+  // Handle viewing a supplier's full details
+  const handleViewItem = (item) => {
+    setEditingItem(item);
+    setFormData(item);
+    setIsViewOnly(true);
+    setIsModalOpen(true);
+  };
+
+  const getDocumentUrl = (documentPath) => {
+    if (!documentPath) return '';
+    const apiUrl = new URL(axios.defaults.baseURL || '/api', window.location.origin);
+    return `${apiUrl.origin}${documentPath}`;
+  };
+
+  const handleDownloadDocument = async () => {
+    try {
+      const documentUrl = getDocumentUrl(formData.document_path);
+      const response = await axios.get(documentUrl, { responseType: 'blob' });
+      const downloadUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      const fileName = decodeURIComponent(formData.document_path.split('/').pop());
+
+      link.href = downloadUrl;
+      link.download = fileName || 'supplier-document';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to download document');
+    }
+  };
+
+  // Handle deleting a supplier
+  const handleDeleteItem = (item) => {
+    if (window.confirm(`Are you sure you want to delete ${item.supplier_name || item.name}?`)) {
+      const tab = tabs.find(t => t.id === activeTab);
+      axios.delete(`${tab.endpoint}/${item.id}`)
+        .then(() => {
+          queryClient.invalidateQueries([activeTab, 'master-data']);
+          toast.success('Item deleted successfully');
+        })
+        .catch((error) => {
+          toast.error(error.response?.data?.message || 'Failed to delete item');
+        });
+    }
   };
 
   const getDefaultFormData = () => {
     switch (activeTab) {
+      // Initialize empty supplier form with all required and optional fields
       case 'suppliers':
-        return { name: '', contact_person: '', email: '', phone: '', address: '' };
+        return { 
+          supplier_name: '', 
+          address: '', 
+          cell_number: '', 
+          contact_person_name: '', 
+          contact_person_number: '', 
+          agreement_type: '', 
+          contract_period_start: '', 
+          contract_period_end: '', 
+          document: null 
+        };
       case 'categories':
         return { name: '', code: '', description: '', depreciation_rate: 0 };
       case 'projects':
@@ -96,22 +184,56 @@ const MasterData = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    const action = params.get('action');
     if (tab) setActiveTab(tab);
-    if (tab === 'suppliers' && action === 'create') {
-      // open modal after activeTab updates
-      setTimeout(() => handleOpenModal(), 50);
-    }
   }, [location.search]);
 
   const getColumns = () => {
     switch (activeTab) {
+      // Define table columns for supplier list display
       case 'suppliers':
         return [
-          { header: 'Name', accessor: 'name' },
-          { header: 'Contact Person', accessor: 'contact_person' },
-          { header: 'Email', accessor: 'email' },
-          { header: 'Phone', accessor: 'phone' }
+          { header: 'Supplier Name', accessor: 'supplier_name' },
+          { header: 'Contact Person', accessor: 'contact_person_name' },
+          { header: 'Cell Number', accessor: 'cell_number' },
+          { header: 'Agreement Type', accessor: 'agreement_type' },
+          { header: 'Contract Period', accessor: 'contract_period_start' },
+          ...(data?.length ? [{
+            header: 'Actions',
+            accessor: 'actions',
+            render: (_, item) => (
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                {/* View button - display supplier details in read-only mode */}
+                <button
+                  className="btn btn-sm btn-info"
+                  title="View Details"
+                  onClick={() => handleViewItem(item)}
+                  style={{ padding: '6px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <FiEye /> View
+                </button>
+                
+                {/* Edit button - open modal to edit supplier information */}
+                <button
+                  className="btn btn-sm btn-warning"
+                  title="Edit Supplier"
+                  onClick={() => handleOpenModal(item)}
+                  style={{ padding: '6px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <FiEdit2 /> Edit
+                </button>
+                
+                {/* Delete button - remove supplier from system with confirmation */}
+                <button
+                  className="btn btn-sm btn-danger"
+                  title="Delete Supplier"
+                  onClick={() => handleDeleteItem(item)}
+                  style={{ padding: '6px 10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <FiTrash2 /> Delete
+                </button>
+              </div>
+            )
+          }] : [])
         ];
       case 'categories':
         return [
@@ -143,11 +265,36 @@ const MasterData = () => {
       case 'suppliers':
         return (
           <>
-            <FormInput label="Name" name="name" value={formData.name || ''} onChange={handleChange} required />
-            <FormInput label="Contact Person" name="contact_person" value={formData.contact_person || ''} onChange={handleChange} />
-            <FormInput label="Email" name="email" type="email" value={formData.email || ''} onChange={handleChange} />
-            <FormInput label="Phone" name="phone" value={formData.phone || ''} onChange={handleChange} />
-            <FormInput label="Address" name="address" type="textarea" value={formData.address || ''} onChange={handleChange} />
+            {/* Supplier company name - Required field for identification */}
+            <FormInput label="Supplier Name" name="supplier_name" value={formData.supplier_name || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Physical address of the supplier's location/office */}
+            <FormInput label="Address" name="address" type="textarea" value={formData.address || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Primary supplier contact mobile number */}
+            <FormInput label="Cell Number" name="cell_number" value={formData.cell_number || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Name of the primary contact person at the supplier organization */}
+            <FormInput label="Contact Person Name" name="contact_person_name" value={formData.contact_person_name || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Phone number of the contact person for direct communication */}
+            <FormInput label="Contact Person Number" name="contact_person_number" value={formData.contact_person_number || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Type of agreement with the supplier - Contract or Point of Sale */}
+            <FormInput label="Type of Agreement" name="agreement_type" type="select" value={formData.agreement_type || ''} onChange={handleChange} required
+              disabled={isViewOnly} options={[
+                { value: 'Contract', label: 'Contract' },
+                { value: 'Point of Sale', label: 'Point of Sale' }
+              ]} />
+            
+            {/* Contract start date for agreement duration tracking */}
+            <FormInput label="Contract Period Start" name="contract_period_start" type="date" value={formData.contract_period_start || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Contract end date for agreement duration tracking */}
+            <FormInput label="Contract Period End" name="contract_period_end" type="date" value={formData.contract_period_end || ''} onChange={handleChange} required disabled={isViewOnly} />
+            
+            {/* Upload supporting contract or agreement document */}
+            <FormInput label="Upload Document" name="document" type="file" onChange={handleChange} disabled={isViewOnly} />
           </>
         );
       case 'categories':
@@ -231,18 +378,33 @@ const MasterData = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={`${editingItem ? 'Edit' : 'Create'} ${tabs.find(t => t.id === activeTab)?.label.slice(0, -1)}`}
+        title={`${isViewOnly ? 'View' : editingItem ? 'Edit' : 'Create'} ${tabs.find(t => t.id === activeTab)?.label.slice(0, -1)}`}
         size="medium"
       >
         <form onSubmit={handleSubmit}>
           {renderForm()}
+          {isViewOnly && formData.document_path && (
+            <div className="form-input-group">
+              <label className="form-label">Uploaded Document</label>
+              <button
+                type="button"
+                onClick={handleDownloadDocument}
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <FiDownload /> Download Document
+              </button>
+            </div>
+          )}
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={createMutation.isLoading}>
-              {createMutation.isLoading ? 'Saving...' : (editingItem ? 'Update' : 'Create')}
-            </button>
+            {!isViewOnly && (
+              <button type="submit" className="btn btn-primary" disabled={createMutation.isLoading}>
+                {createMutation.isLoading ? 'Saving...' : (editingItem ? 'Update' : 'Create')}
+              </button>
+            )}
           </div>
         </form>
       </Modal>

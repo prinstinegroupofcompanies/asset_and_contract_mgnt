@@ -122,7 +122,7 @@ const Layout = () => {
       icon: FiShoppingCart,
       items: [
         { path: '/admin/master-data?tab=suppliers&action=create', label: 'Create Suppler', icon: FiPlus, description: 'Add a new supplier' },
-        { path: '/admin/master-data?tab=suppliers&view=log', label: 'Log Suppler', icon: FiList, description: 'View supplier logs' }
+       
       ]
     });
 
