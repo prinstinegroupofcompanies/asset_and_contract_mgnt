@@ -4,8 +4,6 @@ import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
-const PRODUCTION_API_URL = 'https://acms-api.onrender.com/api';
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -24,12 +22,15 @@ const resolveApiUrl = () => {
 
   if (typeof window !== 'undefined') {
     const hostname = window.location?.hostname || '';
-    if (hostname.includes('vercel.app') || hostname.includes('localhost') || hostname === '127.0.0.1') {
-      return hostname.includes('vercel.app') ? PRODUCTION_API_URL : 'http://localhost:5000/api';
+    if (hostname.includes('localhost') || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
     }
+
+    // Use the Vercel rewrite for deployed builds so the browser stays same-origin.
+    return '/api';
   }
 
-  return PRODUCTION_API_URL;
+  return '/api';
 };
 
 const API_URL = resolveApiUrl();

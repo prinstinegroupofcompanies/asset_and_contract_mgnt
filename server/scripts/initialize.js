@@ -358,6 +358,7 @@ const schemas = {
         hours_reading REAL,
         purchase_date DATE NOT NULL,
         supplier TEXT,
+        driver TEXT,
         receipt_number TEXT,
         project_id INTEGER,
         purpose TEXT,
@@ -376,6 +377,8 @@ const schemas = {
         maintenance_type TEXT CHECK(maintenance_type IN ('Service', 'Repair', 'Inspection', 'Insurance', 'License', 'Other')),
         scheduled_date DATE,
         completed_date DATE,
+        driver TEXT,
+        problem_identified TEXT,
         cost REAL,
         currency TEXT DEFAULT 'USD',
         service_provider TEXT,
@@ -582,6 +585,40 @@ async function migrateSupplierColumns() {
   }
 }
 
+async function migrateFuelLogColumns() {
+  if ((process.env.DB_TYPE || 'sqlite') === 'sqlite') {
+    const existingColumns = await db.query("SELECT name FROM pragma_table_info('fuel_logs')");
+    if (!existingColumns.some(column => column.name === 'driver')) {
+      await db.query('ALTER TABLE fuel_logs ADD COLUMN driver TEXT');
+    }
+    return;
+  }
+
+  await db.query('ALTER TABLE fuel_logs ADD COLUMN IF NOT EXISTS driver TEXT');
+}
+
+async function migrateMaintenanceColumns() {
+  const columns = [
+    ['driver', 'TEXT'],
+    ['problem_identified', 'TEXT']
+  ];
+
+  if ((process.env.DB_TYPE || 'sqlite') === 'sqlite') {
+    const existingColumns = await db.query("SELECT name FROM pragma_table_info('vehicle_maintenance')");
+    const existingNames = new Set(existingColumns.map(column => column.name));
+    for (const [name, type] of columns) {
+      if (!existingNames.has(name)) {
+        await db.query(`ALTER TABLE vehicle_maintenance ADD COLUMN ${name} ${type}`);
+      }
+    }
+    return;
+  }
+
+  for (const [name, type] of columns) {
+    await db.query(`ALTER TABLE vehicle_maintenance ADD COLUMN IF NOT EXISTS ${name} ${type}`);
+  }
+}
+
 async function seedInitialData() {
   logger.info('Seeding initial data...');
 
@@ -642,6 +679,8 @@ async function initializeDatabase() {
   try {
     await createTables();
     await migrateSupplierColumns();
+    await migrateFuelLogColumns();
+    await migrateMaintenanceColumns();
     await seedInitialData();
     logger.info('Database initialization completed');
   } catch (error) {

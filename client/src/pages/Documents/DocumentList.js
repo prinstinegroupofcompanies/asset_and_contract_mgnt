@@ -15,8 +15,7 @@ const DocumentList = () => {
     project_id: '',
     category: '',
     from_date: '',
-    to_date: '',
-    entity_type: isAssetManager ? 'Asset' : isStockManager ? 'StockEntry,StockExit' : ''
+    to_date: ''
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -26,7 +25,7 @@ const DocumentList = () => {
   });
 
   const { data, isLoading } = useQuery(
-    ['documents', filters, isAssetManager, isStockManager],
+    ['documents', filters],
     async () => {
       const params = new URLSearchParams();
       Object.keys(filters).forEach(key => {
@@ -34,13 +33,6 @@ const DocumentList = () => {
           params.append(key, filters[key]);
         }
       });
-      
-      // Apply role-based filtering
-      if (isAssetManager && !params.get('entity_type')) {
-        params.append('entity_type', 'Asset');
-      } else if (isStockManager && !params.get('entity_type')) {
-        params.append('entity_type', 'StockEntry,StockExit');
-      }
       
       const response = await axios.get(`/documents?${params.toString()}`);
       return response.data.documents;
@@ -112,7 +104,7 @@ const DocumentList = () => {
     {
       header: 'Document Code',
       accessor: 'document_code',
-      render: (row) => <strong>{row.document_code}</strong>
+      render: (value) => <strong>{value}</strong>
     },
     {
       header: 'File Name',
@@ -121,17 +113,17 @@ const DocumentList = () => {
     {
       header: 'Category',
       accessor: 'category',
-      render: (row) => row.category || '-'
+      render: (value) => value || '-'
     },
     {
       header: 'Project',
       accessor: 'project_name',
-      render: (row) => row.project_name || '-'
+      render: (value) => value || '-'
     },
     {
       header: 'Entity',
       accessor: 'entity_type',
-      render: (row) => row.entity_type ? `${row.entity_type} #${row.entity_id}` : '-'
+      render: (value, row) => value ? `${value} #${row.entity_id}` : '-'
     },
     {
       header: 'Uploaded By',
@@ -140,12 +132,12 @@ const DocumentList = () => {
     {
       header: 'Upload Date',
       accessor: 'uploaded_at',
-      render: (row) => new Date(row.uploaded_at).toLocaleDateString()
+      render: (value) => value ? new Date(value).toLocaleDateString() : '-'
     },
     {
       header: 'Actions',
       accessor: 'actions',
-      render: (row) => (
+      render: (_, row) => (
         <div className="table-actions">
           <button
             className="btn-icon"

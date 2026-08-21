@@ -25,6 +25,35 @@ const supplierUpload = multer({
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024 }
 });
 
+async function registerUploadedDocument({ file, fileName, category, entityType, entityId, uploadedBy }) {
+  const prefix = 'PIL-DOC';
+  const year = new Date().getFullYear();
+  const count = await db.get(
+    'SELECT COUNT(*) as count FROM documents WHERE document_code LIKE ?',
+    [`${prefix}-${year}-%`]
+  );
+  const sequence = (count.count || 0) + 1;
+  const documentCode = `${prefix}-${year}-${String(sequence).padStart(5, '0')}`;
+
+  await db.query(`
+    INSERT INTO documents (
+      document_code, file_name, original_file_name, file_path,
+      file_type, file_size, category, entity_type, entity_id, uploaded_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    documentCode,
+    fileName,
+    file.originalname,
+    file.path,
+    file.mimetype,
+    file.size,
+    category,
+    entityType,
+    entityId,
+    uploadedBy
+  ]);
+}
+
 // All admin routes require authentication
 router.use(authenticate);
 
@@ -261,6 +290,17 @@ router.post('/suppliers', authorize('Administrator'), supplierUpload.single('doc
       document_path
     ]);
 
+    if (req.file) {
+      await registerUploadedDocument({
+        file: req.file,
+        fileName: `${supplier_name} agreement`,
+        category: 'Supplier Agreement',
+        entityType: 'Supplier',
+        entityId: result.lastID,
+        uploadedBy: req.user.id
+      });
+    }
+
     await logAudit({
       userId: req.user.id,
       action: 'CREATE',
@@ -327,6 +367,17 @@ router.put('/suppliers/:id', authorize('Administrator'), supplierUpload.single('
 
     if (!result.changes) {
       return res.status(404).json({ success: false, message: 'Supplier not found' });
+    }
+
+    if (req.file) {
+      await registerUploadedDocument({
+        file: req.file,
+        fileName: `${supplier_name} agreement`,
+        category: 'Supplier Agreement',
+        entityType: 'Supplier',
+        entityId: req.params.id,
+        uploadedBy: req.user.id
+      });
     }
 
     await logAudit({

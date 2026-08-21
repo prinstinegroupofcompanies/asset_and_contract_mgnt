@@ -57,6 +57,53 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get all fuel logs
+router.get('/fuel-logs', authorize('Administrator', 'Asset Manager'), async (req, res) => {
+  try {
+    const fuelLogs = await db.query(`
+      SELECT
+        fl.*,
+        v.registration_number,
+        v.make,
+        v.model,
+        p.name as project_name,
+        u.full_name as logged_by_name
+      FROM fuel_logs fl
+      LEFT JOIN vehicles v ON fl.vehicle_id = v.id
+      LEFT JOIN projects p ON fl.project_id = p.id
+      LEFT JOIN users u ON fl.logged_by = u.id
+      ORDER BY fl.purchase_date DESC, fl.created_at DESC
+    `);
+
+    res.json({ success: true, fuelLogs });
+  } catch (error) {
+    logger.error('Get fuel logs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get fuel logs' });
+  }
+});
+
+// Get all maintenance records
+router.get('/maintenance', authorize('Administrator', 'Asset Manager'), async (req, res) => {
+  try {
+    const maintenance = await db.query(`
+      SELECT
+        vm.*,
+        v.registration_number,
+        v.make,
+        v.model
+      FROM vehicle_maintenance vm
+      LEFT JOIN vehicles v ON vm.vehicle_id = v.id
+      WHERE v.deleted_at IS NULL
+      ORDER BY vm.scheduled_date DESC, vm.created_at DESC
+    `);
+
+    res.json({ success: true, maintenance });
+  } catch (error) {
+    logger.error('Get maintenance records error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get maintenance records' });
+  }
+});
+
 // Get single vehicle with details
 router.get('/:id', async (req, res) => {
   try {
@@ -177,7 +224,7 @@ router.post('/:id/fuel', authorize('Administrator', 'Asset Manager'), [
     const vehicleId = req.params.id;
     const {
       fuel_type, quantity, unit_cost, currency, odometer_reading, hours_reading,
-      purchase_date, supplier, receipt_number, project_id, purpose, notes
+      purchase_date, supplier, driver, receipt_number, project_id, purpose, notes
     } = req.body;
 
     const vehicle = await db.get('SELECT * FROM vehicles WHERE id = ?', [vehicleId]);
@@ -190,12 +237,12 @@ router.post('/:id/fuel', authorize('Administrator', 'Asset Manager'), [
     const result = await db.query(`
       INSERT INTO fuel_logs (
         vehicle_id, fuel_type, quantity, unit_cost, currency, total_cost,
-        odometer_reading, hours_reading, purchase_date, supplier, receipt_number,
+        odometer_reading, hours_reading, purchase_date, supplier, driver, receipt_number,
         project_id, purpose, notes, logged_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       vehicleId, fuel_type || vehicle.fuel_type, quantity, unit_cost, currency || 'USD', total_cost,
-      odometer_reading, hours_reading, purchase_date, supplier, receipt_number,
+      odometer_reading, hours_reading, purchase_date, supplier, driver, receipt_number,
       project_id, purpose, notes, req.user.id
     ]);
 
@@ -243,7 +290,7 @@ router.post('/:id/maintenance', authorize('Administrator', 'Asset Manager'), [
 
     const vehicleId = req.params.id;
     const {
-      maintenance_type, scheduled_date, description, cost, currency,
+      maintenance_type, scheduled_date, driver, problem_identified, description, cost, currency,
       service_provider, next_service_date, next_service_mileage
     } = req.body;
 
@@ -254,11 +301,11 @@ router.post('/:id/maintenance', authorize('Administrator', 'Asset Manager'), [
 
     const result = await db.query(`
       INSERT INTO vehicle_maintenance (
-        vehicle_id, maintenance_type, scheduled_date, description, cost, currency,
+        vehicle_id, maintenance_type, scheduled_date, driver, problem_identified, description, cost, currency,
         service_provider, next_service_date, next_service_mileage, performed_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      vehicleId, maintenance_type, scheduled_date, description, cost, currency || 'USD',
+      vehicleId, maintenance_type, scheduled_date, driver, problem_identified, description, cost, currency || 'USD',
       service_provider, next_service_date, next_service_mileage, req.user.id
     ]);
 

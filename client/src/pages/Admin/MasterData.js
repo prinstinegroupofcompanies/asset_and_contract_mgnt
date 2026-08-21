@@ -341,22 +341,10 @@ const MasterData = () => {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Master Data</h1>
+        <h1 className="page-title">Supplier Data</h1>
         <p className="page-subtitle">Manage system configuration and reference data</p>
       </div>
 
-      <div className="module-tabs">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? 'active' : ''}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       <div className="card">
         <div className="card-header">
